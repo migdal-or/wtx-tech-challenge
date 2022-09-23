@@ -125,31 +125,75 @@ try:
         #   If data has changed, we change EFFECTIVE_TO_DTTM to NOW(), change PROCESSED_DTTM to NOW(),
         #   we insert a new record with changed data and
         #   EFFECTIVE_FROM_DTTM = NOW(), EFFECTIVE_TO_DTTM = 'infinity', PROCESSED_DTTM = NOW()
-            # port_country VARCHAR(50),
-            # port_code VARCHAR(50),
-            # port_url VARCHAR(50),
-            # major_towns TEXT,
-            # shipping_lines TEXT,
-            # import_reqs TEXT,
-            # export_reqs TEXT,
-            # port_html TEXT,
         
-        # for country_port_link in list_countries_ports_links:
-            # r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
-            # page = BeautifulSoup(r.text, 'html.parser')
-            # one_port = []
-            # cur.execute("""SELECT port_code FROM ports 
-                # WHERE port_country = %s AND port_code = %s AND (%s is Not Null) 
-                    # AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""", country_port_link)
-            # for record in cur:
-                # one_port.append(record[0])
-            # # print(list_ports)
-            # # print (base_url+country_and_link[1])
-            # for link in page.findAll('a'):
-                # for port in list_ports:
-                    # linkcontents=" ".join([str(a) for a in link.contents])
-                    # if '(' +port+ ')' in linkcontents:
-                        # list_countries_ports_links.append([country_and_link[0], port, link.get('href')])
+        for country_port_link in list_countries_ports_links:
+            #print(country_port_link)
+            one_port = []
+            cur.execute("""SELECT major_towns, shipping_lines, import_reqs, export_reqs FROM ports 
+                WHERE port_country = %s AND port_code = %s AND (%s is Not Null) 
+                    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""", country_port_link)
+            if cur.rowcount > 1:
+                print("error: excess data in the table")
+                exit(0)
+            if cur.rowcount < 1:
+                print("error: no data in the table")
+                exit(0)
+            for record in cur:
+                one_port = record
+                #print(one_port)
+            r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
+            page = BeautifulSoup(r.text, 'html.parser')
+            major_towns=""
+            shipping_lines=""
+            export_reqs=""
+            import_reqs=""
+            for element in page.findAll('h3'):
+                #print (element)
+                if "Major towns near seaport" == str(element.contents[0]):
+                    try:
+                        #print("upd major_towns")
+                        major_towns=element.next.next.contents[0]
+                    except (Exception) as error:
+                        print("no Major towns for " + country_port_link[2] + ": " + str(error))
+
+                if "List of main shipping lines serving the port" == str(element.contents[0]):
+                    try:
+                  #      print("upd shipping_lines")
+                        shipping_lines=element.next.next.contents[0]                
+                    except (Exception) as error:
+                        print("no shipping lines for " + country_port_link[2] + ": " + str(error))
+                if "Country Requirements & Restrictions" == str(element.contents[0]):
+                    if "Export requirements" == str(element.previous.previous.contents[0]):
+                        try:
+                    #        print("upd export_reqs")
+                            export_reqs = element.next.next.contents[0]
+                        except (Exception) as error:
+                            print("no Export for " + country_port_link[2] + ": " + str(error))
+                    if "Import requirements" == str(element.previous.previous.contents[0]):
+                        try:
+                      #      print("upd import_reqs")
+                            import_reqs = element.next.next.contents[0]
+                        except (Exception) as error:
+                            print("no Import for " + country_port_link[2] + ": " + str(error))
+            need_to_update_data = False
+            if major_towns!=one_port[0]: need_to_update_data = True
+            if shipping_lines!=one_port[1]: need_to_update_data = True
+            if export_reqs!=one_port[2]: need_to_update_data = True
+            if import_reqs!=one_port[3]: need_to_update_data = True
+            
+            if need_to_update_data:
+                print("upd data:")
+                print("""UPDATE ports 
+                SET major_towns = %s, shipping_lines=%s, import_reqs=%s, export_reqs=%s, PROCESSED_DTTM=NOW()
+                WHERE port_country = %s AND port_code = %s 
+                    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""")
+                print ([major_towns, shipping_lines, export_reqs, import_reqs, country_port_link[0], country_port_link[1] ])
+
+                cur.execute("""UPDATE ports 
+                SET major_towns = %s, shipping_lines=%s, import_reqs=%s, export_reqs=%s, PROCESSED_DTTM=NOW()
+                WHERE port_country = %s AND port_code = %s 
+                    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""", [major_towns, shipping_lines, export_reqs, import_reqs, country_port_link[0], country_port_link[1] ])
+                conn.commit()
 
 
 
