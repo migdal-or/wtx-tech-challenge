@@ -21,15 +21,19 @@ This is the approach that I tried to pursue in my Take-Home Case.
 
 First, I assume the machine where the assessment takes place has Docker installed and an Internet access channel.
 Then, I download a PostgreSQL official image and run its container:
-* docker run --name wtx-import -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
-* docker stop wtx-import
-* docker start wtx-import
+```
+docker run --name wtx-import -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+docker stop wtx-import
+docker start wtx-import
+```
 Now the database can be accessed from command-line with
-* docker exec -it wtx-import psql -U postgres
+```docker exec -it wtx-import psql -U postgres```
 
 In real use, we can connect another arbitrary database to the script.
 In the script, I create (if it does not exist) a storage table in a default database which will store the new data (in real production use this should be done with 
-* COPY STG_trades_`date+%s` (fields) FROM 'trades.csv' DELIMITER ';' CSV HEADER;).
+```
+COPY STG_trades_`date+%s` (fields) FROM 'trades.csv' DELIMITER ';' CSV HEADER;)
+```
 And on fourth stage, I'd load data from STG table to the public accessible table, ensuring SCD changes, historical versioning schema and date of ingestion. This step would check if port codes follow the reference table, quantities and values match, replace quantity with 1 if it is empty and value is <80K, and so on.
 Also during this load step I'd add values to fields such as SOURCE_SYSTEM_CD, IS_ACTIVE_FLG, DELETED_FLG, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM and PROCESSED_DTTM.
 
