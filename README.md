@@ -13,12 +13,13 @@ This is the approach that I tried to pursue in my Take-Home Case.
 
 First, I assume the machine where the assessment takes place has Docker installed and an Internet access channel.
 Then, I download a PostgreSQL official image and run its container:
-docker run --name wtx-import -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
-docker stop wtx-import
-docker start wtx-import
+* docker run --name wtx-import -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+* docker stop wtx-import
+* docker start wtx-import
 
 In real use, we can connect another arbitrary database to the script.
-In the script, I create (if it does not exist) a storage table in a default database which will store the new data (in real production use this should be done with COPY STG_trades_`date+%s` (fields) FROM 'trades.csv' DELIMITER ';' CSV HEADER;).
+In the script, I create (if it does not exist) a storage table in a default database which will store the new data (in real production use this should be done with 
+* COPY STG_trades_`date+%s` (fields) FROM 'trades.csv' DELIMITER ';' CSV HEADER;).
 And on fourth stage, I'd load data from STG table to the public accessible table, ensuring SCD changes, historical versioning schema and date of ingestion. This step would check if port codes follow the reference table, quantities and values match, replace quantity with 1 if it is empty and value is <80K, and so on.
 Also during this load step I'd add values to fields such as SOURCE_SYSTEM_CD, IS_ACTIVE_FLG, DELETED_FLG, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM and PROCESSED_DTTM.
 
@@ -29,10 +30,10 @@ What are the business requirements if data is incomplete? The actual data has an
 
 After the data is loaded into database, we can easily analyse it by creating views or with queries such as
 * Most popular shipping routes (source port and destination port):
-SELECT source_port, destination_port, COUNT(*) FROM trades GROUP BY source_port, destination_port ORDER BY count(*) desc;
+* SELECT source_port, destination_port, COUNT(*) FROM trades GROUP BY source_port, destination_port ORDER BY count(*) desc;
 
 * Average import value (in USD) per country
-SELECT destination_country, AVG(std_quantity*value_fob_usd) FROM trades GROUP BY destination_country;
+* SELECT destination_country, AVG(std_quantity*value_fob_usd) FROM trades GROUP BY destination_country;
 
 On my machine, the load of the supplied 45 Kbytes file took 0m0.324seconds.
 That allows me to expect that this script will perform good enough on big volumes of data.
@@ -41,8 +42,55 @@ Real use would require more resources for indexing data, checking constraints, d
 
 #### Step 2 - Port information
 
+Based on loaded shipping routes data, I would build a table to store port details.
+This can be done with the same SQL query to initialize the table from the beginning and to make updates later.
+The table should have an SCD2 versioning scheme to mark the moment when the route has appeared, when its data got changed or deleted.
+As I don't currently have strict business specifications on what to store for a port, I'd save the country, port_code, URL and the complete HTML received from the 
+
+* Major towns near seaport
+* List of main shipping lines serving the port
+* Country Requirements & Restrictions (Import & Export)
+
+CREATE TABLE IF NOT EXISTS ports(
+        port_id SERIAL PRIMARY KEY,
+		port_country VARCHAR(50),
+		port_code VARCHAR(50),
+		port_url VARCHAR(50),
+		major_towns TEXT,
+		shipping_lines TEXT,
+		import_reqs TEXT,
+		export_reqs TEXT,
+		port_html TEXT,
+		
+		EFFECTIVE_FROM_DTTM timestamp,
+		EFFECTIVE_TO_DTTM timestamp,
+        PROCESSED_DTTM timestamp
+        );
+
+
+# these are new ports available in our routes table which we should add to ports and query data from webpage
+select distinct port_country, port_code from (
+	SELECT source_country as port_country, source_port as port_code from trades
+	UNION
+	SELECT destination_country, destination_port from trades
+	) a 
+EXCEPT select port_country, port_code from ports;
+
+insert into ports ( port_country, port_code, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM, PROCESSED_DTTM)
+select port_country, port_code, NOW() as EFFECTIVE_FROM_DTTM, 'infinity' as EFFECTIVE_TO_DTTM, NOW() as PROCESSED_DTTM from 
+(
+select distinct port_country, port_code
+from (
+	SELECT source_country as port_country, source_port as port_code from trades
+	UNION
+	SELECT destination_country, destination_port from trades
+	) a 
+EXCEPT select port_country, port_code from ports
+) b;
+
 select count(distinct port) from (select distinct source_port port from trades UNION select distinct destination_port from trades) a;
 281
+
 
 
 * docker exec -it wtx-import psql -U postgres
