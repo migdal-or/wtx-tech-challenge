@@ -103,7 +103,7 @@ try:
             
         for country_and_link in list_countries_links:
             list_ports = []
-            cur.execute("SELECT DISTINCT port_code FROM ports WHERE port_country = %s;", [ country_and_link[0] ])
+            cur.execute("SELECT port_code FROM ports WHERE port_country = %s AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;", [ country_and_link[0] ])
             for record in cur:
                 list_ports.append(record[0])
             # print(list_ports)
@@ -125,7 +125,7 @@ try:
         #   If data has changed, we change EFFECTIVE_TO_DTTM to NOW(), change PROCESSED_DTTM to NOW(),
         #   we insert a new record with changed data and
         #   EFFECTIVE_FROM_DTTM = NOW(), EFFECTIVE_TO_DTTM = 'infinity', PROCESSED_DTTM = NOW()
-        # #            port_country VARCHAR(50),
+            # port_country VARCHAR(50),
             # port_code VARCHAR(50),
             # port_url VARCHAR(50),
             # major_towns TEXT,
@@ -134,20 +134,22 @@ try:
             # export_reqs TEXT,
             # port_html TEXT,
         
-        for country_port_link in list_countries_ports_links:
-            list_ports = []
-            cur.execute("SELECT DISTINCT port_code FROM ports WHERE port_country = %s AND port_code = %s AND (%s is Not Null);", country_port_link)
-            for record in cur:
-                list_ports.append(record[0])
-            # print(list_ports)
-            # print (base_url+country_and_link[1])
-            r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
-            page = BeautifulSoup(r.text, 'html.parser')
-            for link in page.findAll('a'):
-                for port in list_ports:
-                    linkcontents=" ".join([str(a) for a in link.contents])
-                    if '(' +port+ ')' in linkcontents:
-                        list_countries_ports_links.append([country_and_link[0], port, link.get('href')])
+        # for country_port_link in list_countries_ports_links:
+            # r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
+            # page = BeautifulSoup(r.text, 'html.parser')
+            # one_port = []
+            # cur.execute("""SELECT port_code FROM ports 
+                # WHERE port_country = %s AND port_code = %s AND (%s is Not Null) 
+                    # AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""", country_port_link)
+            # for record in cur:
+                # one_port.append(record[0])
+            # # print(list_ports)
+            # # print (base_url+country_and_link[1])
+            # for link in page.findAll('a'):
+                # for port in list_ports:
+                    # linkcontents=" ".join([str(a) for a in link.contents])
+                    # if '(' +port+ ')' in linkcontents:
+                        # list_countries_ports_links.append([country_and_link[0], port, link.get('href')])
 
 
 
