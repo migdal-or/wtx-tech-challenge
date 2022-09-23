@@ -1,14 +1,12 @@
 import psycopg2
 conn = None
 base_url = 'https://www.cogoport.com'
-#import requests
-#r = requests.get(base_url+'/ports')
-#with open('ports.html', mode='w') as fp:
-#    fp.write(r.text)
+import requests
 
-count = 0
-links_parse = []
 list_countries = []
+list_countries_links = []
+list_countries_ports_links = []
+list_ports = []
 
 # need to install this by pip install beautifulsoup4
 from bs4 import BeautifulSoup
@@ -69,19 +67,57 @@ try:
         
         # Here we have a list of stored ports with their respective countries in the database.
         # Let's get it into a list_countries to traverse it.
-        # The webpage structure looks as following:
+        # The webpages are laid in 3 levels:
         # 1. At the top https://www.cogoport.com/ports we have list of countries.
         #   We can enumerate all <a> links on this page and check each one against country names from list_countries.
         #   Probable collisions: 'Sudan' vs 'South Sudan', 'Oman' vs 'Romania', 'Mali' vs 'Somalia', 'Niger' vs 'Nigeria'
-        #   TODO: fix these.
+        #   Impossible because we check for complete <div class="country__name">CountryName</div>
         #   For each country, we have a hyperlink to a page containing all its ports.
         #   So we store a list of lists list_countries_links = [ [countryname1, link1], [countryname2, link2] ] to process it further.
+        
+        cur.execute("SELECT DISTINCT port_country FROM ports;")        
+        for record in cur:
+            list_countries.append(record[0])
+
+        r = requests.get(base_url+'/ports')
+        #with open('ports.html', mode='w') as fp:
+        #    fp.write(r.text)
+        #with open('ports.html', mode='r') as fp:
+        #r = fp.read()
+        page = BeautifulSoup(r.text, 'html.parser')
+        #page = BeautifulSoup(r, 'html.parser')
+        for link in page.findAll('a'):
+            for country in list_countries:
+                linkcontents=" ".join([str(a) for a in link.contents])
+                if '<div class="country__name">' +country+ '</div>' in linkcontents:
+                    list_countries_links.append([country, link.get('href')])
+        #print(list_countries_links)
+
+
         # 2. Let's make a loop in list_countries_links.
         #   On each loop, we query ports list for this country from the database,
         #   we load a webpage which can contain data for some ports,
         #   we enumerate all <a> links on this page and check each one against ports we know for this country.
         #   For each port found, we store it in a list of lists
         #   list_countries_ports_links = [ [countryname1, port_code1, link1], [countryname2, port_code2, link2] ]
+            
+        for country_and_link in list_countries_links:
+            list_ports = []
+            cur.execute("SELECT DISTINCT port_code FROM ports WHERE port_country = %s;", [ country_and_link[0] ])
+            for record in cur:
+                list_ports.append(record[0])
+            # print(list_ports)
+            # print (base_url+country_and_link[1])
+            r = requests.get(base_url+country_and_link[1]) # for ex, /countries/italy
+            page = BeautifulSoup(r.text, 'html.parser')
+            for link in page.findAll('a'):
+                for port in list_ports:
+                    linkcontents=" ".join([str(a) for a in link.contents])
+                    if '(' +port+ ')' in linkcontents:
+                        list_countries_ports_links.append([country_and_link[0], port, link.get('href')])
+            # print (list_countries_ports_links) # example:
+            # [['Belgium', 'BEANR', '/ports/antwerp-beanr'], ['Italy', 'ITAOI', '/ports/ancona-itaoi'], ['Jordan', 'JOAQJ', '/ports/aqaba-joaqj']]
+
         # 3. Let's make a loop in list_countries_ports_links
         #   On each loop, we query the webpage for its link,
         #   we extract data from the webpage,
@@ -89,39 +125,17 @@ try:
         #   If data has changed, we change EFFECTIVE_TO_DTTM to NOW(), change PROCESSED_DTTM to NOW(),
         #   we insert a new record with changed data and
         #   EFFECTIVE_FROM_DTTM = NOW(), EFFECTIVE_TO_DTTM = 'infinity', PROCESSED_DTTM = NOW()
-        cur.execute("SELECT DISTINCT port_country FROM ports;")        
-        for record in cur:
-            list_countries.append(record[0])
-
-        with open('ports.html', mode='r') as fp:
-            r = fp.read()
-            #page = BeautifulSoup(r.text, 'html.parser')
-            page = BeautifulSoup(r, 'html.parser')
-            for link in page.findAll('a'):
-                count+=1
-                #if count > 30 and count < 40:
-                #print("")
-                #print(link, link.get('href'))
-                for country in list_countries:
-                    #print("01 "+ country)
-                    #print(link)
-                    linkcontents=" ".join([str(a) for a in link.contents])
-                    #print(" ".join([str(a) for a in link.contents])) #+" " + "02"
-                    if '<div class="country__name">' +country+ '</div>' in linkcontents:
-                        links_parse.append(link.get('href'))
-                        #print(country + " added")
-            #print(links_parse)
         
-        for i in range(len(links)):
+        # for i in range(len(links)):
 
-        cur.execute("""select distinct country, port FROM (
-                        SELECT source_country as country, source_port as port FROM trades 
-                        UNION 
-                        SELECT destination_country, destination_port FROM trades
-                        ) a;""")
-        for record in cur:
-            #print(record, type(record), record[0])
-            list_countries.append(record[0])
+        # cur.execute("""select distinct country, port FROM (
+                        # SELECT source_country as country, source_port as port FROM trades 
+                        # UNION 
+                        # SELECT destination_country, destination_port FROM trades
+                        # ) a;""")
+        # for record in cur:
+            # #print(record, type(record), record[0])
+            # list_countries.append(record[0])
 
 
 except (Exception, psycopg2.DatabaseError) as error:
