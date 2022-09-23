@@ -64,8 +64,8 @@ The fill code uses the same SQL query to initialize the table from the beginning
 Now we have a list of stored ports with their respective countries in the database.
 Let's get it into a list_countries to traverse it.
 The webpage structure looks as following:
-1. At the top https://www.cogoport.com/ports we have list of countries.
-  We can enumerate all <a> links on this page and check each one against country names from list_countries.
+1. At the top https://www.cogoport.com/ports we have a list of countries.
+  We can enumerate all &lt; a &gt; links on this page and check each one against country names from list_countries.
   Probable collisions: 'Sudan' vs 'South Sudan', 'Oman' vs 'Romania', 'Mali' vs 'Somalia', 'Niger' vs 'Nigeria'
   Sould I fix these? Nope, that already works pretty good.
   For each country, we have a hyperlink to a page containing all its ports.
@@ -73,7 +73,7 @@ The webpage structure looks as following:
 2. Let's make a loop in list_countries_links.
   On each loop, we query ports list for this country from the database,
   we load a webpage which can contain data for some ports,
-  we enumerate all <a> links on this page and check each one against ports we know for this country.
+  we enumerate all &lt; a &gt; links on this page and check each one against ports we know for this country.
   For each port found, we store it in a list of lists
   list_countries_ports_links = [ [countryname1, port_code1, link1], [countryname2, port_code2, link2] ]
 3. Let's make a loop in list_countries_ports_links.
