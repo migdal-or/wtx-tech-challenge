@@ -44,10 +44,10 @@ What are the business requirements if data is incomplete? The actual data has an
 
 After the data is loaded into database, we can easily analyse it by creating views or with queries such as
 * Most popular shipping routes (source port and destination port):
-* SELECT source_port, destination_port, COUNT(*) FROM trades GROUP BY source_port, destination_port ORDER BY count(*) desc;
+```SELECT source_port, destination_port, COUNT(*) FROM trades GROUP BY source_port, destination_port ORDER BY count(*) desc;```
 
 * Average import value (in USD) per country
-* SELECT destination_country, AVG(std_quantity*value_fob_usd) FROM trades GROUP BY destination_country;
+```SELECT destination_country, AVG(std_quantity*value_fob_usd) FROM trades GROUP BY destination_country;```
 
 On my machine, the load of the supplied 45 Kbytes file took 0m0.324seconds.
 That allows me to expect that this script will perform good enough on big volumes of data.
