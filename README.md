@@ -66,8 +66,8 @@ Let's get it into a list_countries to traverse it.
 The webpage structure looks as following:
 1. At the top https://www.cogoport.com/ports we have a list of countries.
   We can enumerate all &lt; a &gt; links on this page and check each one against country names from list_countries.
-  Probable collisions: 'Sudan' vs 'South Sudan', 'Oman' vs 'Romania', 'Mali' vs 'Somalia', 'Niger' vs 'Nigeria'
-  Sould I fix these? Nope, that already works pretty good.
+  Probable collisions: 'Sudan' vs 'South Sudan', 'Oman' vs 'Romania', 'Mali' vs 'Somalia', 'Niger' vs 'Nigeria'<br>
+  Should I fix these? Nope, that already works pretty good.<br>
   For each country, we have a hyperlink to a page containing all its ports.
   So we store a list of lists list_countries_links = [ [countryname1, link1], [countryname2, link2] ] to process it further.
 2. Let's make a loop in list_countries_links.
