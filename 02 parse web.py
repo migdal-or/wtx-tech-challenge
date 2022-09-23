@@ -59,10 +59,10 @@ try:
                 EXCEPT SELECT port_country, port_code FROM ports WHERE NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM
             ) b;    """)
         conn.commit()
-        # TODO: work out the case when there's a port in a future:
+        # TODO: work out the case when there's a port data in a future:
         # say, this is year 2022 now, 
         # and there's data that the port will be open since 2025.
-        # For now, the code will erroneously add a record from now to infinity.
+        # For now, the code will add a wrong record from now to infinity.
         # correct: add a subquery so that EFFECTIVE_TO_DTTM=coalesce( min(effective_from)-(1 second) where effective_from>now(), 'infinity')
 
         # TODO: process possible errors here and for every cur.execute

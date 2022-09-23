@@ -1,5 +1,13 @@
 # wtx-tech-challenge
 
+To run this code, one needs a trades.csv file you supplied me privately via email.
+Please add it to the gitcloned folder before running.
+The .gitignore file contains a *.csv entry to ignore this file.
+Also the requirements are:
+* Working PostgreSQL database on the localhost (perfectly done with Docker)
+* pip install beautifulsoup4
+* psycopg2
+
 #### Step 1 - Import / Export reports
 
 First. I'd say that from the data warehouse approach, the process requested does not look optimal.
@@ -16,6 +24,8 @@ Then, I download a PostgreSQL official image and run its container:
 * docker run --name wtx-import -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
 * docker stop wtx-import
 * docker start wtx-import
+Now the database can be accessed from command-line with
+* docker exec -it wtx-import psql -U postgres
 
 In real use, we can connect another arbitrary database to the script.
 In the script, I create (if it does not exist) a storage table in a default database which will store the new data (in real production use this should be done with 
@@ -24,7 +34,7 @@ And on fourth stage, I'd load data from STG table to the public accessible table
 Also during this load step I'd add values to fields such as SOURCE_SYSTEM_CD, IS_ACTIVE_FLG, DELETED_FLG, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM and PROCESSED_DTTM.
 
 We need more knowledge on how the value_fob_usd is formatted: will it always use comma as a fractional part separator?
-If yes, is it linked to any locale? Now I hardcoded to treat comma sign as decimal separator.
+If yes, is it linked to any locale? Now I have hardcoded to treat comma sign as decimal separator.
 
 What are the business requirements if data is incomplete? The actual data has an "i" for items_number, but since there is no use of this parameter I decided to ignore that and store it as text.
 
@@ -41,59 +51,13 @@ Real use would require more resources for indexing data, checking constraints, d
 
 
 #### Step 2 - Port information
-
-Based on loaded shipping routes data, I would build a table to store port details.
-This can be done with the same SQL query to initialize the table from the beginning and to make updates later.
-The table should have an SCD2 versioning scheme to mark the moment when the route has appeared, when its data got changed or deleted.
-As I don't currently have strict business specifications on what to store for a port, I'd save the country, port_code, URL and the complete HTML received from the 
-
-* Major towns near seaport
-* List of main shipping lines serving the port
-* Country Requirements & Restrictions (Import & Export)
-
-CREATE TABLE IF NOT EXISTS ports(
-        port_id SERIAL PRIMARY KEY,
-		port_country VARCHAR(50),
-		port_code VARCHAR(50),
-		port_url VARCHAR(50),
-		major_towns TEXT,
-		shipping_lines TEXT,
-		import_reqs TEXT,
-		export_reqs TEXT,
-		port_html TEXT,
-		
-		EFFECTIVE_FROM_DTTM timestamp,
-		EFFECTIVE_TO_DTTM timestamp,
-        PROCESSED_DTTM timestamp
-        );
+Based on loaded shipping routes data, I would make a table to store port details.
+The table should probably have an SCD2 versioning scheme to mark the historical route changelog, when the route data got changed or deleted.
+For each port, I'd save the country, port_code, URL, Major towns, Shipping lines, Exp/imp requirements and the complete HTML received from the web page.
+The Python code has the table creation code, the SQL to fill it and web-parsing algorithm.
+The fill code uses the same SQL query to initialize the table from the beginning and to make updates later.
 
 
-# these are new ports available in our routes table which we should add to ports and query data from webpage
-select distinct port_country, port_code from (
-	SELECT source_country as port_country, source_port as port_code from trades
-	UNION
-	SELECT destination_country, destination_port from trades
-	) a 
-EXCEPT select port_country, port_code from ports;
-
-insert into ports ( port_country, port_code, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM, PROCESSED_DTTM)
-select port_country, port_code, NOW() as EFFECTIVE_FROM_DTTM, 'infinity' as EFFECTIVE_TO_DTTM, NOW() as PROCESSED_DTTM from 
-(
-select distinct port_country, port_code
-from (
-	SELECT source_country as port_country, source_port as port_code from trades
-	UNION
-	SELECT destination_country, destination_port from trades
-	) a 
-EXCEPT select port_country, port_code from ports
-) b;
-
-select count(distinct port) from (select distinct source_port port from trades UNION select distinct destination_port from trades) a;
-281
-
-
-
-* docker exec -it wtx-import psql -U postgres
 
 
 
