@@ -76,7 +76,7 @@ The webpage structure looks as following:
   we enumerate all <a> links on this page and check each one against ports we know for this country.
   For each port found, we store it in a list of lists
   list_countries_ports_links = [ [countryname1, port_code1, link1], [countryname2, port_code2, link2] ]
-3. Let's make a loop in list_countries_ports_links
+3. Let's make a loop in list_countries_ports_links.
   On each loop, we query the webpage for its link,
   we extract data from the webpage,
   we check if data is the same. If data is the same, we just change the PROCESSED_DTTM.
@@ -97,6 +97,4 @@ My program can scale the data load amounts based on PROCESSED_DTTM: the script c
 
 # TODO
 - If the port in our dataset does not have information on the website, then we can skip it but keep track that we have no information available.
-
-#TODO
 - Make sure to describe all components being used as well an overall cost estimation and how that would scale
