@@ -125,17 +125,30 @@ try:
         #   If data has changed, we change EFFECTIVE_TO_DTTM to NOW(), change PROCESSED_DTTM to NOW(),
         #   we insert a new record with changed data and
         #   EFFECTIVE_FROM_DTTM = NOW(), EFFECTIVE_TO_DTTM = 'infinity', PROCESSED_DTTM = NOW()
+        # #            port_country VARCHAR(50),
+            # port_code VARCHAR(50),
+            # port_url VARCHAR(50),
+            # major_towns TEXT,
+            # shipping_lines TEXT,
+            # import_reqs TEXT,
+            # export_reqs TEXT,
+            # port_html TEXT,
         
-        # for i in range(len(links)):
+        for country_port_link in list_countries_ports_links:
+            list_ports = []
+            cur.execute("SELECT DISTINCT port_code FROM ports WHERE port_country = %s AND port_code = %s AND (%s is Not Null);", country_port_link)
+            for record in cur:
+                list_ports.append(record[0])
+            # print(list_ports)
+            # print (base_url+country_and_link[1])
+            r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
+            page = BeautifulSoup(r.text, 'html.parser')
+            for link in page.findAll('a'):
+                for port in list_ports:
+                    linkcontents=" ".join([str(a) for a in link.contents])
+                    if '(' +port+ ')' in linkcontents:
+                        list_countries_ports_links.append([country_and_link[0], port, link.get('href')])
 
-        # cur.execute("""select distinct country, port FROM (
-                        # SELECT source_country as country, source_port as port FROM trades 
-                        # UNION 
-                        # SELECT destination_country, destination_port FROM trades
-                        # ) a;""")
-        # for record in cur:
-            # #print(record, type(record), record[0])
-            # list_countries.append(record[0])
 
 
 except (Exception, psycopg2.DatabaseError) as error:
