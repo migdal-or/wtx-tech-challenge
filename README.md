@@ -67,7 +67,7 @@ The webpage structure looks as following:
 1. At the top https://www.cogoport.com/ports we have list of countries.
   We can enumerate all <a> links on this page and check each one against country names from list_countries.
   Probable collisions: 'Sudan' vs 'South Sudan', 'Oman' vs 'Romania', 'Mali' vs 'Somalia', 'Niger' vs 'Nigeria'
-  TODO: fix these.
+  Sould I fix these? Nope, that already works pretty good.
   For each country, we have a hyperlink to a page containing all its ports.
   So we store a list of lists list_countries_links = [ [countryname1, link1], [countryname2, link2] ] to process it further.
 2. Let's make a loop in list_countries_links.
@@ -84,6 +84,7 @@ The webpage structure looks as following:
   we insert a new record with changed data and
   EFFECTIVE_FROM_DTTM = NOW(), EFFECTIVE_TO_DTTM = 'infinity', PROCESSED_DTTM = NOW()
 
+My program can scale the data load amounts based on PROCESSED_DTTM: the script can take 100 records which were processed, say, more that 10 hours ago, refresh these and be ready for the next run when it is possible.
 
 
 
@@ -94,68 +95,8 @@ The webpage structure looks as following:
 
 
 
-
-
-
-# Tech challenge for data engineers
-
-At WTX we want to enable all teams to have data literacy and be able to find insights that are cross-functional and could only be gathered if they had access to data coming from different workstreams.
-
-Our goal as data engineers is to ensure that we are able to gather the following:
-
-* Collect, Store and make it available from different data sources (both internal and external)
-* Provide the appropriate infrastructure to enable anyone within WTX to gather data insights
-
-### Background
-
-#### Step 1 - Import / Export reports
-
-Our business development team was able to access an international trade database that provides us with some information regarding import and export of "Motor vehicles for the transport of goods" which has the HS Code `8704`.
-
-We will be able to start receiving monthly reports of these trades from their team, to which could help our sales team better understand the demand in certain countries as well as the operations team better understand the most used routes.
-
-As we know that these data are collected partially manually and we need to validate the data quality and ensure it follows some rules:
-
-* HS Code needs to start with `870423` (Trucks & Lorries) and have 8 characters
-* Port code starts with the country's ISO Alpha-2 code
-* Quantity is a numeric, where we can assume the number is 1 if the value is less than 80,000 USD when there's no information
-
-The goal is to have a structured way of keeping track of the numbers such as:
-
-* Most popular shipping routes (source port and destination port)
-* Average import value (in USD) per country
-
-The file with the collected information is attached as a delimited text file [trades.csv](./trades.csv).
-
-#### Step 2 - Port information
-
-As we expand, we want to be able to struck new deals with shipping lines to decrease our logistics costs. 
-
-In order to do so, we found a website that provides additional information on ports:
-
-* https://www.cogoport.com/ports
-
-We want to understand the main shipping lines that operate on each of the source and destination ports from the import/export dataset (that we have information on) so that we can find if we can cover multiple ports with a single shipping line. This will also help us as we expand to new countries and regions.
-
-The main information we are looking for (if present) is:
-* Major towns near seaport
-* List of main shipping lines serving the port
-* Country Requirements & Restrictions (Import & Export)
-
-### Goals
-
-As one of the first data engineers at WTX we expect you to be able to take charge in defining the entire data pipeline on how to collect, transform and store this information to make it available for all teams.
-
- 1. Write a `Python, JavaScript or Go` script to analyse the data based on the requirements stated above to determine the data's quality and sanitize the collected data.
-- Make sure that your solution is able to scale and handle large volumes of data (millions of trades), feel free to show proof.
-
-2. Collect data from the ports in our dataset (source and destination) from the [website mentioned above](https://www.cogoport.com/ports) - through automation, and store it a way that it can be used for the Step 3.
+# TODO
 - If the port in our dataset does not have information on the website, then we can skip it but keep track that we have no information available.
 
-3. Design the Data Pipeline from ingest until the data would be available for querying from other teams.
+#TODO
 - Make sure to describe all components being used as well an overall cost estimation and how that would scale
-- Bonus points if you draft how you would implement this data pipeline in Azure
-
-
-*Note: As part of this challenge feel free to take some assumptions (when not clearly stated) but make sure to explain them.*
-
