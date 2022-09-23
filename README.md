@@ -10,7 +10,7 @@ Also the requirements are:
 
 #### Step 1 - Import / Export reports
 
-First. I'd say that from the data warehouse approach, the process requested does not look optimal.
+First. I'd say that from the database approach, the process requested does not look optimal.
 Instead of checking CSV file with Python and counting ports and values during this process, I'd rather:
 
 1. Consider these CSV files are Operational Data Store, make some sort of a queue, probably with directories: inbox / archive,
