@@ -30,7 +30,6 @@ try:
             shipping_lines TEXT,
             import_reqs TEXT,
             export_reqs TEXT,
-            port_html TEXT,
             
             EFFECTIVE_FROM_DTTM timestamp,
             EFFECTIVE_TO_DTTM timestamp,
@@ -140,60 +139,77 @@ try:
                 exit(0)
             for record in cur:
                 one_port = record
-                #print(one_port)
+                print(one_port, end=" -oneport\n")
             r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
             page = BeautifulSoup(r.text, 'html.parser')
             major_towns=""
             shipping_lines=""
-            export_reqs=""
             import_reqs=""
+            export_reqs=""
             for element in page.findAll('h3'):
                 #print (element)
                 if "Major towns near seaport" == str(element.contents[0]):
                     try:
                         #print("upd major_towns")
-                        major_towns=element.next.next.contents[0]
+                        major_towns=element.next.next.contents[0].strip()
                     except (Exception) as error:
                         print("no Major towns for " + country_port_link[2] + ": " + str(error))
+                        major_towns = 'no information available'
 
                 if "List of main shipping lines serving the port" == str(element.contents[0]):
                     try:
                   #      print("upd shipping_lines")
-                        shipping_lines=element.next.next.contents[0]                
+                        shipping_lines=element.next.next.contents[0].strip()             
                     except (Exception) as error:
                         print("no shipping lines for " + country_port_link[2] + ": " + str(error))
+                        shipping_lines = 'no information available'
                 if "Country Requirements & Restrictions" == str(element.contents[0]):
-                    if "Export requirements" == str(element.previous.previous.contents[0]):
-                        try:
-                    #        print("upd export_reqs")
-                            export_reqs = element.next.next.contents[0]
-                        except (Exception) as error:
-                            print("no Export for " + country_port_link[2] + ": " + str(error))
                     if "Import requirements" == str(element.previous.previous.contents[0]):
                         try:
                       #      print("upd import_reqs")
-                            import_reqs = element.next.next.contents[0]
+                            import_reqs = element.next.next.contents[0].strip()
                         except (Exception) as error:
                             print("no Import for " + country_port_link[2] + ": " + str(error))
+                            import_reqs = 'no information available'
+                    if "Export requirements" == str(element.previous.previous.contents[0]):
+                        try:
+                    #        print("upd export_reqs")
+                            export_reqs = element.next.next.contents[0].strip()
+                        except (Exception) as error:
+                            print("no Export for " + country_port_link[2] + ": " + str(error))
+                            export_reqs = 'no information available'
+
             need_to_update_data = False
-            if major_towns!=one_port[0]: need_to_update_data = True
-            if shipping_lines!=one_port[1]: need_to_update_data = True
-            if export_reqs!=one_port[2]: need_to_update_data = True
-            if import_reqs!=one_port[3]: need_to_update_data = True
+            if major_towns!=one_port[0]:
+                need_to_update_data = True
+                print([major_towns, one_port[0], 'majtowns and oneport0'])
+            if shipping_lines!=one_port[1]:
+                need_to_update_data = True
+                print([shipping_lines, one_port[1], 'shipping_lines and oneport0'])
+            if import_reqs!=one_port[2]:
+                need_to_update_data = True
+                print([import_reqs, one_port[2], 'import_reqs and oneport0'])
+            if export_reqs!=one_port[3]:
+                need_to_update_data = True
+                print([export_reqs, one_port[3], 'export_reqs and oneport0'])
             
             if need_to_update_data:
-                print("upd data:")
-                print("""UPDATE ports 
-                SET major_towns = %s, shipping_lines=%s, import_reqs=%s, export_reqs=%s, PROCESSED_DTTM=NOW()
-                WHERE port_country = %s AND port_code = %s 
-                    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""")
-                print ([major_towns, shipping_lines, export_reqs, import_reqs, country_port_link[0], country_port_link[1] ])
+                print("upd data for: ", end="")
+                print ([country_port_link[0], country_port_link[1] ])
 
                 cur.execute("""UPDATE ports 
-                SET major_towns = %s, shipping_lines=%s, import_reqs=%s, export_reqs=%s, PROCESSED_DTTM=NOW()
+                SET PROCESSED_DTTM=NOW(), EFFECTIVE_TO_DTTM=NOW()
                 WHERE port_country = %s AND port_code = %s 
-                    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""", [major_towns, shipping_lines, export_reqs, import_reqs, country_port_link[0], country_port_link[1] ])
+                    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM;""", [country_port_link[0], country_port_link[1] ])
+                cur.execute("""INSERT INTO ports 
+                ( port_country, port_code, major_towns, shipping_lines, import_reqs, export_reqs, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM, PROCESSED_DTTM)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW(), 'infinity', NOW());""", [country_port_link[0], country_port_link[1], major_towns, shipping_lines, import_reqs, export_reqs])
+                
+                # SET major_towns = %s, shipping_lines=%s, import_reqs=%s, export_reqs=%s, PROCESSED_DTTM=NOW()
+                # WHERE port_country = %s AND port_code = %s 
+                #    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM
                 conn.commit()
+            print("")
 
 
 
