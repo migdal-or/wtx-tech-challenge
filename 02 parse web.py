@@ -139,7 +139,7 @@ try:
                 exit(0)
             for record in cur:
                 one_port = record
-                print(one_port, end=" -oneport\n")
+                #print(one_port, end=" -oneport\n")
             r = requests.get(base_url+country_port_link[2]) # for ex, /ports/antwerp-beanr
             page = BeautifulSoup(r.text, 'html.parser')
             major_towns=""
@@ -150,7 +150,6 @@ try:
                 #print (element)
                 if "Major towns near seaport" == str(element.contents[0]):
                     try:
-                        #print("upd major_towns")
                         major_towns=element.next.next.contents[0].strip()
                     except (Exception) as error:
                         print("no Major towns for " + country_port_link[2] + ": " + str(error))
@@ -158,7 +157,6 @@ try:
 
                 if "List of main shipping lines serving the port" == str(element.contents[0]):
                     try:
-                  #      print("upd shipping_lines")
                         shipping_lines=element.next.next.contents[0].strip()             
                     except (Exception) as error:
                         print("no shipping lines for " + country_port_link[2] + ": " + str(error))
@@ -166,14 +164,12 @@ try:
                 if "Country Requirements & Restrictions" == str(element.contents[0]):
                     if "Import requirements" == str(element.previous.previous.contents[0]):
                         try:
-                      #      print("upd import_reqs")
                             import_reqs = element.next.next.contents[0].strip()
                         except (Exception) as error:
                             print("no Import for " + country_port_link[2] + ": " + str(error))
                             import_reqs = 'no information available'
                     if "Export requirements" == str(element.previous.previous.contents[0]):
                         try:
-                    #        print("upd export_reqs")
                             export_reqs = element.next.next.contents[0].strip()
                         except (Exception) as error:
                             print("no Export for " + country_port_link[2] + ": " + str(error))
@@ -205,13 +201,7 @@ try:
                 ( port_country, port_code, major_towns, shipping_lines, import_reqs, export_reqs, EFFECTIVE_FROM_DTTM, EFFECTIVE_TO_DTTM, PROCESSED_DTTM)
                 VALUES (%s, %s, %s, %s, %s, %s, NOW(), 'infinity', NOW());""", [country_port_link[0], country_port_link[1], major_towns, shipping_lines, import_reqs, export_reqs])
                 
-                # SET major_towns = %s, shipping_lines=%s, import_reqs=%s, export_reqs=%s, PROCESSED_DTTM=NOW()
-                # WHERE port_country = %s AND port_code = %s 
-                #    AND NOW() BETWEEN EFFECTIVE_FROM_DTTM and EFFECTIVE_TO_DTTM
                 conn.commit()
-            print("")
-
-
 
 except (Exception, psycopg2.DatabaseError) as error:
     print("exception connect db: " + str(error))

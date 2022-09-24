@@ -83,8 +83,9 @@ The webpage structure looks as following:
   If data has changed, we change EFFECTIVE_TO_DTTM to NOW(), change PROCESSED_DTTM to NOW(),
   we insert a new record with changed data and
   EFFECTIVE_FROM_DTTM = NOW(), EFFECTIVE_TO_DTTM = 'infinity', PROCESSED_DTTM = NOW()
+If the port in our dataset does not have information on the website, then we can skip it but keep track that we have no information available.
 
-My program can scale the data load amounts based on PROCESSED_DTTM: the script can take 100 records which were processed, say, more that 10 hours ago, refresh these and be ready for the next run when it is possible.
+This code can scale the data load amounts based on PROCESSED_DTTM: with minor edits the script can take, for example, 100 records which were processed, say, more that 10 hours ago, refresh these and be ready for the next run when it is possible.
 
 
 
@@ -96,5 +97,4 @@ My program can scale the data load amounts based on PROCESSED_DTTM: the script c
 
 
 # TODO
-- If the port in our dataset does not have information on the website, then we can skip it but keep track that we have no information available.
 - Make sure to describe all components being used as well an overall cost estimation and how that would scale
